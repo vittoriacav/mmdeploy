@@ -181,6 +181,7 @@ class PoseDetection(BaseTask):
 
     def create_input(self,
                      imgs: Union[str, np.ndarray, Sequence],
+                     bbox: None,
                      input_shape: Sequence[int] = None,
                      data_preprocessor: Optional[BaseDataPreprocessor] = None,
                      **kwargs) -> Tuple[Dict, torch.Tensor]:
@@ -220,10 +221,17 @@ class PoseDetection(BaseTask):
         bboxes = []
         for img in imgs:
             height, width = img.shape[:2]
-            # create dummy person results
-            person_results.append([{'bbox': np.array([0, 0, width, height])}])
-            bboxes.append(
-                np.array([box['bbox'] for box in person_results[-1]]))
+           
+            if bbox is not None:
+                bbox = bbox.numpy()
+            else: 
+                # if bbox is not provided set bbox as whole image
+                bbox = np.array([0, 0, width, height])
+            
+            person_results.append([{'bbox': bbox}])
+            bboxes.append(np.array([box['bbox'] for box in person_results[-1]]))
+            
+
         # build the data pipeline
         test_pipeline = [
             TRANSFORMS.build(c) for c in cfg.test_dataloader.dataset.pipeline

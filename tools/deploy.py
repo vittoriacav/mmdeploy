@@ -1,9 +1,21 @@
 # Copyright (c) OpenMMLab. All rights reserved.
+import sys
+
 import argparse
 import logging
 import os
 import os.path as osp
 from functools import partial
+import torch
+
+mmdeploy_dir = os.getenv("MMDEPLOY_DIR")
+if mmdeploy_dir is not None:
+    sys.path.insert(0, mmdeploy_dir)
+else:
+    print("Error: MMDEPLOY_DIR environment variable is not set.")
+    print("\t cd /the/root/path/of/MMDeploy")
+    print("\t export MMDEPLOY_DIR=$(pwd)")
+
 
 import mmengine
 import torch.multiprocessing as mp
@@ -25,7 +37,11 @@ def parse_args():
     parser.add_argument('deploy_cfg', help='deploy config path')
     parser.add_argument('model_cfg', help='model config path')
     parser.add_argument('checkpoint', help='model checkpoint path')
-    parser.add_argument('img', help='image used to convert model model')
+    parser.add_argument('img', help='image used to convert model')
+    parser.add_argument(
+        '--bbox', 
+        default=None, 
+        help='bbox torch tensor saved from a previous detection used to convert model')
     parser.add_argument(
         '--test-img',
         default=None,
@@ -139,6 +155,12 @@ def main():
     ir_config = get_ir_config(deploy_cfg)
     ir_save_file = ir_config['save_file']
     ir_type = IR.get(ir_config['type'])
+
+    if args.bbox is not None:
+        bbox = torch.load(args.bbox)
+    else:
+        bbox = args.bbox
+
     torch2ir(ir_type)(
         args.img,
         args.work_dir,
@@ -146,7 +168,8 @@ def main():
         deploy_cfg_path,
         model_cfg_path,
         checkpoint_path,
-        device=args.device)
+        device=args.device, 
+        bbox = bbox)
 
     # convert backend
     ir_files = [osp.join(args.work_dir, ir_save_file)]
@@ -312,7 +335,7 @@ def main():
     create_process(
         f'visualize {backend.value} model',
         target=visualize_model,
-        args=(model_cfg_path, deploy_cfg_path, backend_files, args.test_img,
+        args=(model_cfg_path, deploy_cfg_path, backend_files, args.test_img, bbox,
               args.device),
         kwargs=extra,
         ret_value=ret_value)
@@ -322,7 +345,7 @@ def main():
         'visualize pytorch model',
         target=visualize_model,
         args=(model_cfg_path, deploy_cfg_path, [checkpoint_path],
-              args.test_img, args.device),
+              args.test_img, bbox, args.device),
         kwargs=dict(
             backend=Backend.PYTORCH,
             output_file=osp.join(args.work_dir, 'output_pytorch.jpg'),

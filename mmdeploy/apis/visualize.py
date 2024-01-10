@@ -12,6 +12,7 @@ def visualize_model(model_cfg: Union[str, mmengine.Config],
                     deploy_cfg: Union[str, mmengine.Config],
                     model: Union[str, Sequence[str]],
                     img: Union[str, np.ndarray, Sequence[str]],
+                    bbox: None,
                     device: str,
                     backend: Optional[Backend] = None,
                     output_file: Optional[str] = None,
@@ -67,7 +68,8 @@ def visualize_model(model_cfg: Union[str, mmengine.Config],
                 data_preprocessor_updater=task_processor.
                 update_data_preprocessor)
 
-    model_inputs, _ = task_processor.create_input(img, input_shape)
+    model_inputs, _ = task_processor.create_input(img,
+        bbox, input_shape)
     with torch.no_grad():
         result = model.test_step(model_inputs)[0]
 

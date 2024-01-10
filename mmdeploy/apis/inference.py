@@ -7,7 +7,7 @@ import numpy as np
 
 def inference_model(model_cfg: Union[str, mmengine.Config],
                     deploy_cfg: Union[str, mmengine.Config],
-                    backend_files: Sequence[str], img: Union[str, np.ndarray],
+                    backend_files: Sequence[str], img: Union[str, np.ndarray], bbox: None,
                     device: str) -> Any:
     """Run inference with PyTorch or backend model and show results.
 
@@ -46,7 +46,7 @@ def inference_model(model_cfg: Union[str, mmengine.Config],
         backend_files, task_processor.update_data_preprocessor)
 
     input_shape = get_input_shape(deploy_cfg)
-    model_inputs, _ = task_processor.create_input(img, input_shape)
+    model_inputs, _ = task_processor.create_input(img, bbox, input_shape)
 
     with torch.no_grad():
         result = model.test_step(model_inputs)
